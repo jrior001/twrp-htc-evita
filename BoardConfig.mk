@@ -88,6 +88,11 @@ BOARD_SEPOLICY_UNION += \
     akmd.te \
     ewtzmud.te
 
+# Vendor Init
+TARGET_UNIFIED_DEVICE := true
+TARGET_INIT_VENDOR_LIB := libinit_evita
+TARGET_LIBINIT_DEFINES_FILE := device/htc/evita/init/init_evita.c
+
 # TWRP
 TW_THEME := portrait_hdpi
 TARGET_RECOVERY_PIXEL_FORMAT := "RGBX_8888"
@@ -97,8 +102,12 @@ TW_BRIGHTNESS_PATH := "/sys/class/leds/lcd-backlight/brightness"
 TW_INCLUDE_CRYPTO := true
 BOARD_RECOVERY_BLDRMSG_OFFSET := 2048
 RECOVERY_VARIANT := twrp
-TARGET_RECOVERY_DEVICE_MODULES := chargeled
+TARGET_RECOVERY_DEVICE_MODULES := chargeled libinit_evita
+RECOVERY_SDCARD_ON_DATA := true
 BOARD_HAS_NO_REAL_SDCARD := true
+TW_INTERNAL_STORAGE_PATH := "/data/media"
+TW_INTERNAL_STORAGE_MOUNT_POINT := "data"
+TW_NO_USB_STORAGE := true
 TW_INCLUDE_DUMLOCK := true
 TW_EXTERNAL_STORAGE_PATH := "/usb-otg"
 TW_EXTERNAL_STORAGE_MOUNT_POINT := "usb-otg"
