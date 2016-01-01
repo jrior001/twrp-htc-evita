@@ -40,23 +40,57 @@
  *  The original partitions for system, data, and internal storage are
  *  by-name/system, by-name/userdata and by-name/fat, respectively.
  *  Some unofficial AOSP ROMs repurpose these three partitions to grant
- *  more room to the data partition. Detect whether these
- *  partitions have been swapped during init and if true:
+ *  more room to the data partition. We are choosing to detect a change
+ *  to the stock system partition. If swapped to vfat,
  *  1) apply new device name 'evitaX'
  *  2) Change fstabs
+ *  otherwise continue loading standard device name/fstab
  */
 
-#define BLK_PART_ORIG_DATA "/dev/block/platform/msm_sdcc.1/by-name/userdata"
-#define BLK_PART_ORIG_STOR "/dev/block/platform/msm_sdcc.1/by-name/fat"
+#define BLK_PART_ORIG_SYS "/dev/block/platform/msm_sdcc.1/by-name/system"
 
 void vendor_load_properties() {
     char platform[PROP_VALUE_MAX];
-    char *detected_fs_type_data;
-    char *detected_fs_type_stor;
+    char *detected_fs_type_sys;
     int rc;
 
-    property_set("ro.product.device", "evitaX");
-    property_set("ro.build.product", "evitaX");
-    ERROR("Found swapped partition scheme; evitaX device name applied");
+    rc = property_get("ro.board.platform", platform);
+    if (!rc || strncmp(platform, ANDROID_TARGET, PROP_VALUE_MAX)) {
+    property_set("ro.product.device", "evita");
+    property_set("ro.build.product", "evita");
+        return;
+    }
 
+    detected_fs_type_sys = blkid_get_tag_value(NULL, "TYPE", BLK_PART_ORIG_SYS);
+    if (detected_fs_type_sys == NULL) {
+        /*
+         * Under any fault case apply default the
+         * default device name.
+         */
+        property_set("ro.product.device", "evita");
+        property_set("ro.build.product", "evita");
+        return;
+    }
+
+    /* detected_fs_type_sys = blkid_get_tag_value(NULL, "TYPE", BLK_PART_ORIG_SYS); */
+    /*
+     * FIXME: Until a more reliable check can be performed, we rely
+     * on the fstype of by-name/sys to tell us if the swapped
+     * partition scheme is active. Users will be instructed to
+     * format /system accordingly to switch partition schemes.
+     * This avoids issues with detecting fs type on encrypted fs.
+     */
+
+    if (strcmp(detected_fs_type_sys, "vfat") == 0 ) {
+        property_set("ro.product.device", "evitaX");
+        property_set("ro.build.product", "evitaX");
+        symlink((const char *)("/etc/recovery.fstab.evitaX"),
+                (const char *)("/etc/twrp.fstab"));
+        ERROR("Found swapped partition scheme; evitaX device name applied");
+    } else {
+        property_set("ro.product.device", "evita");
+        property_set("ro.build.product", "evita");
+        ERROR("Found standard partition scheme; evita device name applied");
+    }
 }
+
